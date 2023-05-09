@@ -1,5 +1,5 @@
 # ADS_Detector
-Scaning tool that detects ADS (Alternate Data Stream).
+Scanning tool that detects ADS (Alternate Data Stream).
 
 - [ ] Detect ADS in NTFS
 - [ ] Implement detection service in Windows
