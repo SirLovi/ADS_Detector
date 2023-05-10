@@ -1,9 +1,9 @@
 # ADS_Detector
 Scanning tool that detects ADS (Alternate Data Stream).
 
-- [ ] Detect ADS in NTFS
+- [x] Detect ADS in NTFS
 - [ ] Implement detection service in Windows
-- [ ] Real time detection
-- [ ] Notification pop-up
-- [ ] Extended configuration (Folder restriction, drives, ...)
+- [x] Real time detection
+- [x] Notification pop-up
+- [x] Extended configuration (Folder restriction, drives, ...)
 - [ ] User Interface
