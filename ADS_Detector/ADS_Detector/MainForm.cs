@@ -1,54 +1,47 @@
 ﻿using System;
 using System.Drawing;
-using System.IO.Pipes;
-using System.ServiceProcess;
-using System.Text;
 using System.Windows.Forms;
 
-namespace ADS_Detector_Notifications
+namespace ADS_Detector
 {
     public partial class MainForm : Form
     {
-        private NamedPipeServerStream pipeServer;
+        public static MainForm Instance { get; private set; }
+        private ADSDetector adsDetector;
+        private NotifyIcon notifyIcon1;
 
         public MainForm()
         {
             InitializeComponent();
+            Instance = this;
+            this.notifyIcon1 = new NotifyIcon();
 
             notifyIcon1.Icon = SystemIcons.Information;
             notifyIcon1.ContextMenu = new ContextMenu(new MenuItem[]
             {
                 new MenuItem("Open", (s, e) => { this.Show(); this.WindowState = FormWindowState.Normal; }),
                 new MenuItem("Configuration", (s, e) => { new ConfigForm().ShowDialog(); }),
-                new MenuItem("Restart Service", (s, e) => { RestartService(); }),
                 new MenuItem("Exit", (s, e) => { this.Close(); })
             });
+            var directories = System.Configuration.ConfigurationManager.AppSettings["WatchedDirectories"].Split(';');
+            var fileTypes = System.Configuration.ConfigurationManager.AppSettings["WatchedFileTypes"].Split(';');
+            var excludedDirs = System.Configuration.ConfigurationManager.AppSettings["ExcludedDirectories"].Split(';');
+            var includeSubdirs = Boolean.Parse(System.Configuration.ConfigurationManager.AppSettings["IncludeSubdirectories"]);
+            adsDetector = new ADSDetector(directories, fileTypes, excludedDirs, includeSubdirs);
+            notifyIcon1.Visible = true;
         }
-
-        private void MainForm_Load(object sender, EventArgs e)
+        public void RestartDetector()
         {
-            pipeServer = new NamedPipeServerStream("ADSPipe", PipeDirection.InOut, 1, PipeTransmissionMode.Message);
-            pipeServer.WaitForConnection();
-
-            BeginRead();
+            var directories = System.Configuration.ConfigurationManager.AppSettings["WatchedDirectories"].Split(';');
+            var fileTypes = System.Configuration.ConfigurationManager.AppSettings["WatchedFileTypes"].Split(';');
+            var excludedDirs = System.Configuration.ConfigurationManager.AppSettings["ExcludedDirectories"].Split(';');
+            var includeSubdirs = Boolean.Parse(System.Configuration.ConfigurationManager.AppSettings["IncludeSubdirectories"]);
+            adsDetector.Stop();
+            adsDetector = new ADSDetector(directories, fileTypes, excludedDirs, includeSubdirs);
         }
-        private void RestartService()
+        private void ExitToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            ServiceController service = new ServiceController("ADS_Detector");
-            try
-            {
-                TimeSpan timeout = TimeSpan.FromMilliseconds(5000);
-
-                service.Stop();
-                service.WaitForStatus(ServiceControllerStatus.Stopped, timeout);
-
-                service.Start();
-                service.WaitForStatus(ServiceControllerStatus.Running, timeout);
-            }
-            catch (Exception ex)
-            {
-                // Handle exception
-            }
+            Close();
         }
         private void MainForm_Resize(object sender, EventArgs e)
         {
@@ -57,42 +50,25 @@ namespace ADS_Detector_Notifications
                 this.Hide();
             }
         }
-
-        private void BeginRead()
-        {
-            byte[] buffer = new byte[4096];
-            pipeServer.BeginRead(buffer, 0, buffer.Length, EndReadCallBack, buffer);
-        }
-
-        private void EndReadCallBack(IAsyncResult result)
-        {
-            try
-            {
-                int readBytes = pipeServer.EndRead(result);
-                if (readBytes > 0)
-                {
-                    byte[] buffer = result.AsyncState as byte[];
-                    string message = Encoding.UTF8.GetString(buffer, 0, readBytes);
-                    ShowNotification(message);
-                    BeginRead();
-                }
-            }
-            catch (Exception ex)
-            {
-                // Handle exception
-            }
-        }
-
-        private void ShowNotification(string message)
+        public void ShowNotification(string message)
         {
             notifyIcon1.BalloonTipTitle = "ADS Detector";
             notifyIcon1.BalloonTipText = message;
             notifyIcon1.ShowBalloonTip(5000);
+            //RestartDetector();
         }
-
         private void MainForm_FormClosed(object sender, FormClosedEventArgs e)
         {
-            pipeServer?.Close();
+            adsDetector.Stop();
+        }
+
+        private void notifyIcon1_MouseDoubleClick(object sender, MouseEventArgs e)
+        {
+
+        }
+        private void toolStripButton1_Click(object sender, EventArgs e)
+        {
+            new ConfigForm().ShowDialog();
         }
     }
 }

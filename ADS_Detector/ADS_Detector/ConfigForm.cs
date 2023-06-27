@@ -1,13 +1,8 @@
-﻿using Microsoft.Extensions.Configuration;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Configuration;
+﻿using System;
 using System.Windows.Forms;
+using System.Configuration;
 
-namespace ADS_Detector_Notifications
+namespace ADS_Detector
 {
     public partial class ConfigForm : Form
     {
@@ -29,7 +24,9 @@ namespace ADS_Detector_Notifications
             config.AppSettings.Settings["ExcludedDirectories"].Value = txtExcludedDirectories.Text;
             config.Save(ConfigurationSaveMode.Modified);
             System.Configuration.ConfigurationManager.RefreshSection("appSettings");
+            MainForm.Instance.RestartDetector();
             this.Close();
         }
+
     }
 }

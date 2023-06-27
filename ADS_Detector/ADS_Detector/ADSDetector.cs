@@ -1,48 +1,42 @@
 ﻿using System;
-using System.IO;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Data;
 using System.Diagnostics;
 using System.Linq;
-using System.ServiceProcess;
-using System.Text;
-using System.Threading.Tasks;
-using System.Runtime.InteropServices;
-using System.Security.Permissions;
-using System.Configuration;
-using Microsoft.Extensions.Configuration;
+using System.IO;
 
 namespace ADS_Detector
 {
-    public partial class Service1 : ServiceBase
+    public partial class ADSDetector : Component
     {
-        private static List<FileSystemWatcher> watchers = new List<FileSystemWatcher>();
-        private static string[] watchedDirectories;
-        private static string[] watchedFileTypes;
-        private static string[] excludedDirectories;
-        private static bool IncludeSubdirectories { get; set; }
+        private List<FileSystemWatcher> watchers = new List<FileSystemWatcher>();
+        private string[] watchedDirectories;
+        private string[] watchedFileTypes;
+        private string[] excludedDirectories;
+        private bool IncludeSubdirectories { get; set; }
 
-        public Service1()
+        public ADSDetector(string[] directories, string[] fileTypes, string[] excludedDirs, bool includeSubdirs)
         {
-            InitializeComponent();
-            watchedDirectories = System.Configuration.ConfigurationManager.AppSettings["WatchedDirectories"].Split(';');
-            IncludeSubdirectories = Boolean.Parse(System.Configuration.ConfigurationManager.AppSettings["IncludeSubdirectories"]);
-            watchedFileTypes = System.Configuration.ConfigurationManager.AppSettings["WatchedFileTypes"].Split(';');
-            excludedDirectories = System.Configuration.ConfigurationManager.AppSettings["ExcludedDirectories"].Split(';');
+            watchedDirectories = directories;
+            watchedFileTypes = fileTypes;
+            excludedDirectories = excludedDirs;
+            IncludeSubdirectories = includeSubdirs;
+            Start();
         }
 
-        protected override void OnStart(string[] args)
+        public void Start()
         {
+            Stop();
             StartADSWatcher();
         }
 
-        protected override void OnStop()
+        public void Stop()
         {
             foreach (var watcher in watchers)
             {
                 watcher.Dispose();
             }
+            watchers.Clear();
         }
 
         private void StartADSWatcher()
@@ -60,13 +54,13 @@ namespace ADS_Detector
             }
         }
 
-        private static void OnChanged(object source, FileSystemEventArgs e)
+        private void OnChanged(object source, FileSystemEventArgs e)
         {
             if (watchedFileTypes.Any(e.FullPath.ToLower().EndsWith) && !excludedDirectories.Any(e.FullPath.ToLower().StartsWith))
             {
                 if (DetectADS(e.FullPath))
                 {
-                    NotificationApp.SendNotification($"ADS detected in {e.FullPath}");
+                    MainForm.Instance.Invoke(new Action(() => MainForm.Instance.ShowNotification($"ADS detected in {e.FullPath}")));
                 }
             }
         }
@@ -76,13 +70,13 @@ namespace ADS_Detector
             try
             {
                 var streams = ADSHelper.GetAlternateStreams(path);
-                if (streams.Any(s => !s.Equals(":$DATA", StringComparison.OrdinalIgnoreCase)))
+                
+                if (streams.Count() > 1)
                 {
                     foreach (var stream in streams)
                     {
                         Debug.WriteLine($"ADS detected: {stream}");
                     }
-
                     return true;
                 }
             }
@@ -90,7 +84,6 @@ namespace ADS_Detector
             {
                 Debug.WriteLine($"Error detecting ADS: {ex.Message}");
             }
-
             return false;
         }
     }

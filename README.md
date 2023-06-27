@@ -7,3 +7,8 @@ Scanning tool that detects ADS (Alternate Data Stream).
 - [x] Notification pop-up
 - [x] Extended configuration (Folder restriction, drives, ...)
 - [ ] User Interface
+
+```
+echo test > file.txt:stream
+more < file.txt:stream
+```
