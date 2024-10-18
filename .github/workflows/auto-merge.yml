@@ -6,13 +6,17 @@ on:
       - opened
       - synchronize
 
+permissions:
+  pull-requests: write
+  contents: write
+
 jobs:
   auto-merge:
     if: github.actor == 'dependabot[bot]' || github.actor == 'dependabot-preview[bot]'
     runs-on: ubuntu-latest
     steps:
       # Step 1: Checkout the repository
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       # Step 2: Run the Dependabot auto-merge action
       - name: Dependabot Auto-Merge
